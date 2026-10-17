@@ -10,6 +10,8 @@ the notes of the version's GitHub Release.
 
 ## [Unreleased]
 
+## [1.0.0] - 2026-10-17
+
 ### Added
 
 - One Gladys device per Tandoor Recipes space, proposed in the Discover tab:
@@ -33,3 +35,6 @@ the notes of the version's GitHub Release.
   and a transport badge on the device.
 - Every text in English, French, German and Spanish, and the documentation in
   the four languages.
+
+[Unreleased]: https://github.com/guim31/gladys-tandoor/compare/v1.0.0...HEAD
+[1.0.0]: https://github.com/guim31/gladys-tandoor/releases/tag/v1.0.0
