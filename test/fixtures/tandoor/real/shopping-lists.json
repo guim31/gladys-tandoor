@@ -1,0 +1,20 @@
+{
+  "count": 2,
+  "next": null,
+  "previous": null,
+  "timestamp": "2026-10-17T13:11:56.008764+00:00",
+  "results": [
+    {
+      "id": 1,
+      "name": "Supermarché",
+      "description": "",
+      "color": null
+    },
+    {
+      "id": 2,
+      "name": "Marché",
+      "description": "",
+      "color": null
+    }
+  ]
+}

@@ -1,0 +1,157 @@
+{
+  "count": 4,
+  "next": null,
+  "previous": null,
+  "timestamp": "2026-10-17T13:11:56.069739+00:00",
+  "results": [
+    {
+      "id": 1,
+      "list_recipe": null,
+      "shopping_lists": [],
+      "food": {
+        "id": 1,
+        "name": "Lait",
+        "plural_name": null,
+        "supermarket_category": null,
+        "shopping_lists": []
+      },
+      "unit": null,
+      "amount": 0.0,
+      "order": 0,
+      "checked": true,
+      "ingredient": null,
+      "list_recipe_data": null,
+      "created_by": {
+        "id": 1,
+        "username": "chef",
+        "first_name": "",
+        "last_name": "",
+        "display_name": "chef",
+        "is_staff": false,
+        "is_superuser": false,
+        "is_active": true
+      },
+      "created_at": "2026-10-17T15:11:26.201808+02:00",
+      "updated_at": "2026-10-17T15:11:37.006970+02:00",
+      "completed_at": "2026-10-17T15:11:37.002660+02:00",
+      "delay_until": null
+    },
+    {
+      "id": 2,
+      "list_recipe": null,
+      "shopping_lists": [
+        {
+          "id": 2,
+          "name": "Marché",
+          "description": "",
+          "color": null
+        }
+      ],
+      "food": {
+        "id": 2,
+        "name": "Tomates",
+        "plural_name": null,
+        "supermarket_category": null,
+        "shopping_lists": []
+      },
+      "unit": {
+        "id": 1,
+        "name": "kg",
+        "plural_name": "kg",
+        "description": null,
+        "base_unit": null,
+        "open_data_slug": null
+      },
+      "amount": 1.5,
+      "order": 0,
+      "checked": false,
+      "ingredient": null,
+      "list_recipe_data": null,
+      "created_by": {
+        "id": 1,
+        "username": "chef",
+        "first_name": "",
+        "last_name": "",
+        "display_name": "chef",
+        "is_staff": false,
+        "is_superuser": false,
+        "is_active": true
+      },
+      "created_at": "2026-10-17T15:11:26.359722+02:00",
+      "updated_at": "2026-10-17T15:11:26.359745+02:00",
+      "completed_at": null,
+      "delay_until": null
+    },
+    {
+      "id": 3,
+      "list_recipe": null,
+      "shopping_lists": [
+        {
+          "id": 1,
+          "name": "Supermarché",
+          "description": "",
+          "color": null
+        }
+      ],
+      "food": {
+        "id": 3,
+        "name": "Œufs",
+        "plural_name": null,
+        "supermarket_category": null,
+        "shopping_lists": []
+      },
+      "unit": null,
+      "amount": 6.0,
+      "order": 0,
+      "checked": false,
+      "ingredient": null,
+      "list_recipe_data": null,
+      "created_by": {
+        "id": 1,
+        "username": "chef",
+        "first_name": "",
+        "last_name": "",
+        "display_name": "chef",
+        "is_staff": false,
+        "is_superuser": false,
+        "is_active": true
+      },
+      "created_at": "2026-10-17T15:11:26.471762+02:00",
+      "updated_at": "2026-10-17T15:11:26.471779+02:00",
+      "completed_at": null,
+      "delay_until": null
+    },
+    {
+      "id": 5,
+      "list_recipe": null,
+      "shopping_lists": [],
+      "food": {
+        "id": 1,
+        "name": "Lait",
+        "plural_name": null,
+        "supermarket_category": null,
+        "shopping_lists": []
+      },
+      "unit": null,
+      "amount": 1.0,
+      "order": 0,
+      "checked": false,
+      "ingredient": null,
+      "list_recipe_data": null,
+      "created_by": {
+        "id": 1,
+        "username": "chef",
+        "first_name": "",
+        "last_name": "",
+        "display_name": "chef",
+        "is_staff": false,
+        "is_superuser": false,
+        "is_active": true
+      },
+      "created_at": "2026-10-17T15:11:37.061378+02:00",
+      "updated_at": "2026-10-17T15:11:37.061408+02:00",
+      "completed_at": null,
+      "delay_until": null
+    }
+  ]
+}

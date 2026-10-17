@@ -16,8 +16,9 @@ its only runtime dependency. It started from the official JavaScript template.
 ```bash
 npm install
 npm test                                  # node --test, the built-in runner
-node --test test/devices.test.js          # one file
-node --test --test-name-pattern "plug"    # tests whose name matches
+node --test test/hub.test.js              # one file
+node --test --test-name-pattern "meal"    # tests whose name matches
+TANDOOR_URL=http://127.0.0.1:8080 TANDOOR_TOKEN=tda_... npm run test:real   # against a real Tandoor
 npm run lint                              # ESLint
 npm run format:check                      # Prettier, as the CI runs it
 npm run format                            # Prettier, fix in place
@@ -32,15 +33,21 @@ pushing.
 
 ```
 index.js                          SDK wiring only: handlers registered before connect()
-src/devices/index.js              registry of the device blueprints + dispatch helpers
-src/devices/<type>.js             one device type per file (buildDevice, onPoll, onSetValue...)
+src/app.js                        registers every handler on the SDK, returns the hub (tests use it too)
+src/hub.js                        TandoorHub: reading timer, midnight, hour clock, states, triggers, writes
+src/devices.js                    the space device: features, external ids, states
 src/scenes.js                     scene action handlers (manifest `scene_actions`)
 src/widgets.js                    dashboard widget handlers (manifest `widgets`)
+src/texts.js                      messages in en/fr/de/es (status, errors, actions, report)
 src/config.js                     DEFAULT_CONFIG (mirrors the manifest defaults) + normalization
-src/weather.js                    example driver (Open-Meteo)
-gladys-assistant-integration.json manifest: name, config_schema, actions, image...
-docs/en.md, docs/fr.md            user documentation, re-hosted by Gladys (mandatory)
-test/                             node --test, against the SDK's fake Gladys (integration-sdk/testing)
+src/problems.js                   repeated failures logged once, and once at recovery
+src/tandoor/client.js             Tandoor REST client (errors by kind, pagination)
+src/tandoor/http.js               the only network code (node:http/https, self-signed on request)
+src/tandoor/model.js              pure functions: days, meal plan by day and type, item names
+gladys-assistant-integration.json manifest: config, action, triggers, scene actions, widgets
+docs/{en,fr,de,es}.md             user documentation, re-hosted by Gladys (same sections)
+test/                             node --test, against the SDK's fake Gladys and test/helpers/fakeTandoor.js
+test/fixtures/tandoor/real/       real answers of Tandoor 2.6.15 (Docker, 17/10/2026)
 .github/scripts/release.mjs       release helpers (manifest bump, changelog), tested in test/
 ```
 
@@ -70,8 +77,9 @@ test/                             node --test, against the SDK's fake Gladys (in
   `type: "provider"`: 5.1.0). `test/manifest.test.js` ties the manifest to the
   code (defaults, action, scene and widget handlers): change both sides
   together.
-- **User-facing text** is bilingual (English and French): action messages,
-  manifest texts, and `docs/en.md` / `docs/fr.md`, kept in sync.
+- **User-facing text** exists in English, French, German ("du") and Spanish
+  ("usted"): manifest texts, messages, widget texts, feature names, and the
+  four `docs/*.md`, kept in sync (`test/i18n.test.js`).
 - **Style.** Prettier formats, ESLint catches mistakes. Comments explain why,
   in English. Tests never touch the network.
 
@@ -233,3 +241,31 @@ long, et sur un « Sie »/« Ihr… » de politesse en allemand. Le store exige 
 - Docs `en`, `fr`, `de`, `es` avec les mêmes sections.
 - Chauffe, ouverture, sécurité : ne rien rendre pilotable « comme un thermostat » ou par un assistant
   vocal quand une erreur serait dangereuse (leçon d'OctoPrint).
+
+## Tandoor Recipes (cette intégration)
+
+Faits vérifiés sur Tandoor 2.6.15 en Docker (`vabene1111/recipes` + PostgreSQL 16), le 17/10/2026, et dans son
+code source (`cookbook/views/api.py`, `cookbook/serializer.py`) :
+
+- **Jeton refusé = HTTP 403, pas 401** : `{"detail":"Authentication credentials were not provided."}`, comme une
+  requête sans jeton. Un jeton à portée `read` reçoit aussi un 403 sur une écriture, avec un autre `detail`
+  (« You do not have permission… ») : le client les distingue par le `detail` (`AUTH` contre `FORBIDDEN`).
+- Jetons `tda_…` créés dans Paramètres → API, avec une portée (`read`, `read write`) et une expiration. Ils agissent
+  dans l'**espace actif** de l'utilisateur : `GET /api/space/current/` donne l'id de l'espace, identité de l'appareil.
+- `GET /api/server-settings/current/` répond **sans jeton** et donne `version` : il sert à reconnaître un Tandoor 2.
+  Absent (404) d'un Tandoor 1.x, traité en « pas un Tandoor 2 ».
+- Pagination DRF : `page`, `page_size` plafonné à **200**, `next` en URL absolue (fausse derrière un proxy) : le
+  client recompte les pages lui-même, 10 au plus.
+- `meal-plan/` filtre sur la **date de fin** (`to_date`) de l'entrée, pour `from_date` comme pour `to_date` : lire
+  large (30 jours) et regrouper soi-même. Une entrée a `from_date`/`to_date` en date-heure (l'heure par défaut du
+  type de repas, sinon midi) dans le fuseau du serveur Tandoor ; `title` prime sur la recette dans l'interface.
+- Les types de repas sont **libres** (nom, `order`, `time`) : une fonctionnalité texte par type, clé = id du type.
+- `shopping-list-entry/` renvoie les non cochés **et les cochés récents** : filtrer `checked` côté intégration, et
+  écarter les entrées reportées (`delay_until` futur). Une entrée exige un `food` (sans lui : 500 HTML) ; elle peut
+  être sur plusieurs listes (`shopping_lists`) ou aucune. `PATCH` de `{checked}` suffit à cocher.
+- `POST /api/ingredient-parser/post/` (`{ingredient: "2 kg tomates"}`) découpe quantité, unité, aliment **et crée
+  l'aliment ou l'unité** s'ils sont nouveaux, comme la saisie dans Tandoor. Les noms d'aliments sont comparés sans
+  la casse par Tandoor (`lait` réutilise `Lait`).
+- Déclencheurs : `meal_time` porte le champ `hour` (filtre d'égalité, comme gladys-holidays) ; l'heure déjà
+  commencée au démarrage n'est pas tirée. `shopping_list_changed` compare deux lectures et ignore les entrées que
+  Gladys a ajoutées ou cochées (`ownChanges`) : pas de boucle.

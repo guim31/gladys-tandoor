@@ -1,33 +1,72 @@
+// -----------------------------------------------------------------------------
+// The configuration as typed by people: addresses copied from the browser,
+// tokens pasted with a space, values of the select fields.
+// -----------------------------------------------------------------------------
+
 import { test } from 'node:test';
 import assert from 'node:assert/strict';
-import { normalizeConfig, DEFAULT_CONFIG } from '../src/config.js';
+import { DEFAULT_CONFIG, normalizeConfig, parseUrl } from '../src/config.js';
 
-test('normalizeConfig returns the defaults when called with no argument', () => {
-  assert.deepEqual(normalizeConfig(), DEFAULT_CONFIG);
+test('an address is understood whichever way it is typed', () => {
+  const cases = {
+    '192.0.2.10:8080': 'http://192.0.2.10:8080',
+    ' http://192.0.2.10:8080/ ': 'http://192.0.2.10:8080',
+    'https://recipes.example.com/search': 'https://recipes.example.com',
+    'https://recipes.example.com/mealplan': 'https://recipes.example.com',
+    'https://recipes.example.com/shopping/': 'https://recipes.example.com',
+    'https://recipes.example.com/recipe/12': 'https://recipes.example.com',
+    'https://recipes.example.com/settings/api': 'https://recipes.example.com',
+    'http://192.0.2.10:8080/api/meal-plan/': 'http://192.0.2.10:8080',
+    'https://example.com/tandoor': 'https://example.com/tandoor',
+    'https://example.com/tandoor/view/recipe/3': 'https://example.com/tandoor',
+  };
+  for (const [typed, expected] of Object.entries(cases)) {
+    assert.equal(parseUrl(typed), expected, typed);
+  }
 });
 
-test('normalizeConfig keeps user values over the defaults', () => {
-  const config = normalizeConfig({ latitude: 45.5, longitude: -73.6, unit: 'fahrenheit' });
-  assert.equal(config.latitude, 45.5);
-  assert.equal(config.longitude, -73.6);
-  assert.equal(config.unit, 'fahrenheit');
+test('an address with credentials or another scheme is refused', () => {
+  for (const typed of [
+    '',
+    '   ',
+    'ftp://192.0.2.10',
+    'http://user:pass@192.0.2.10:8080',
+    'http://',
+  ]) {
+    assert.equal(parseUrl(typed), null, typed);
+  }
+  assert.equal(parseUrl(undefined), null);
 });
 
-test('normalizeConfig coerces numeric strings coming from a form', () => {
-  const config = normalizeConfig({ latitude: '48.8', longitude: '2.3', poll_frequency: '600' });
-  assert.equal(config.latitude, 48.8);
-  assert.equal(config.longitude, 2.3);
-  assert.equal(config.poll_frequency, 600);
-  assert.equal(typeof config.poll_frequency, 'number');
-});
-
-test('normalizeConfig falls back to the default for a missing numeric field', () => {
-  const config = normalizeConfig({ unit: 'celsius' });
-  assert.equal(config.poll_frequency, DEFAULT_CONFIG.poll_frequency);
-});
-
-test('GLADYS_PREFER_LOCAL defaults to true and only an explicit false disables it', () => {
-  assert.equal(normalizeConfig().GLADYS_PREFER_LOCAL, true);
-  assert.equal(normalizeConfig({ GLADYS_PREFER_LOCAL: true }).GLADYS_PREFER_LOCAL, true);
-  assert.equal(normalizeConfig({ GLADYS_PREFER_LOCAL: false }).GLADYS_PREFER_LOCAL, false);
+test('normalized configuration: defaults, a pasted "Bearer " token, unknown values', () => {
+  assert.deepEqual(normalizeConfig({}), {
+    url: null,
+    invalidUrl: false,
+    token: '',
+    allowSelfSigned: false,
+    pollIntervalMs: 300_000,
+    language: 'fr',
+  });
+  assert.deepEqual(
+    normalizeConfig({
+      url: '192.0.2.10:8080',
+      api_token: ' Bearer abc.def \n',
+      allow_self_signed: 'true',
+      poll_interval: 60,
+      language: 'de',
+    }),
+    {
+      url: 'http://192.0.2.10:8080',
+      invalidUrl: false,
+      token: 'abc.def',
+      allowSelfSigned: true,
+      pollIntervalMs: 60_000,
+      language: 'de',
+    },
+  );
+  const odd = normalizeConfig({ url: 'ftp://x', poll_interval: '7', language: 'it' });
+  assert.equal(odd.invalidUrl, true);
+  assert.equal(odd.pollIntervalMs, Number(DEFAULT_CONFIG.poll_interval) * 1000);
+  assert.equal(odd.language, 'fr');
+  assert.deepEqual(normalizeConfig(null).url, null);
 });
