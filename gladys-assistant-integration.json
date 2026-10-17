@@ -1,177 +1,858 @@
 {
   "manifest_version": 1,
   "type": "device",
-  "name": "Demo Devices Template",
+  "name": "Tandoor Recipes",
   "description": {
-    "en": "Starter template showing sensors, a switch, a dimmable light and a smart plug.",
-    "fr": "Template de démarrage : capteurs, interrupteur, lampe variable et prise connectée."
+    "en": "Your Tandoor Recipes meal plan and shopping list in Gladys: menus, scenes and widgets.",
+    "fr": "Le planning des repas et la liste de courses de Tandoor Recipes dans Gladys.",
+    "de": "Essensplan und Einkaufsliste von Tandoor Recipes in Gladys: Menüs, Szenen, Widgets.",
+    "es": "El menú y la lista de la compra de Tandoor Recipes en Gladys: escenas y widgets."
   },
   "version": "1.0.0",
-  "docker_image": "ghcr.io/gladysassistant/integration-template-js:1.0.0",
-  "gladys_version": ">=5.1.0",
-  "cover_image": "https://raw.githubusercontent.com/GladysAssistant/integration-template-js/master/cover.png",
-  "categories": ["lighting", "security", "environment"],
-  "transports": ["local", "cloud"],
+  "docker_image": "ghcr.io/guim31/gladys-tandoor:1.0.0",
+  "gladys_version": ">=5.2.0",
+  "cover_image": "https://raw.githubusercontent.com/guim31/gladys-tandoor/main/cover.png",
+  "categories": ["services"],
+  "transports": ["local"],
   "config_schema": [
     {
       "key": "intro",
       "type": "section",
-      "label": { "en": "Getting started", "fr": "Pour commencer" },
+      "label": {
+        "en": "Your Tandoor",
+        "fr": "Votre Tandoor",
+        "de": "Dein Tandoor",
+        "es": "Su Tandoor"
+      },
       "description": {
-        "en": "The demo weather station reads real data from the free Open-Meteo API: pick the coordinates to observe. No account, no API key.",
-        "fr": "La station météo de démonstration lit de vraies données via l'API gratuite Open-Meteo : choisissez les coordonnées à observer. Pas de compte, pas de clé d'API."
+        "en": "In Tandoor, open Settings, then API, create a token with the \"read write\" scope and paste it below with the address of Tandoor. Then add the Tandoor device from the Discover tab.",
+        "fr": "Dans Tandoor, ouvrez Paramètres, puis API, créez un jeton avec la portée « read write » et collez-le ci-dessous avec l'adresse de Tandoor. Ajoutez ensuite l'appareil Tandoor depuis l'onglet Découverte.",
+        "de": "Öffne in Tandoor die Einstellungen, dann API, erstelle ein Token mit dem Bereich „read write“ und füge es unten mit der Adresse von Tandoor ein. Lege dann das Gerät Tandoor im Tab „Entdecken“ an.",
+        "es": "En Tandoor, abra Ajustes y luego API, cree un token con el alcance «read write» y péguelo abajo con la dirección de Tandoor. Después, añada el dispositivo Tandoor desde la pestaña Descubrir."
       },
       "links": [
         {
-          "url": "https://open-meteo.com/en/docs",
-          "label": { "en": "Open-Meteo documentation", "fr": "Documentation Open-Meteo" }
+          "url": "https://github.com/guim31/gladys-tandoor/blob/main/docs/en.md",
+          "label": {
+            "en": "Setup guide",
+            "fr": "Guide d'installation",
+            "de": "Installationsanleitung",
+            "es": "Guía de instalación"
+          }
+        },
+        {
+          "url": "https://docs.tandoor.dev/",
+          "label": {
+            "en": "Tandoor documentation",
+            "fr": "Documentation de Tandoor",
+            "de": "Dokumentation von Tandoor",
+            "es": "Documentación de Tandoor"
+          }
         }
       ]
     },
     {
-      "key": "latitude",
-      "type": "number",
-      "label": { "en": "Latitude", "fr": "Latitude" },
-      "description": {
-        "en": "Latitude used for the demo weather sensor.",
-        "fr": "Latitude utilisée par le capteur météo de démonstration."
+      "key": "url",
+      "type": "string",
+      "label": {
+        "en": "Tandoor address",
+        "fr": "Adresse de Tandoor",
+        "de": "Adresse von Tandoor",
+        "es": "Dirección de Tandoor"
       },
-      "placeholder": { "en": "e.g. 48.8566", "fr": "ex. 48.8566" },
-      "required": true,
-      "default": 48.8566,
-      "min": -90,
-      "max": 90
+      "description": {
+        "en": "The address you open Tandoor with, port included (often 8080 with Docker).",
+        "fr": "L'adresse avec laquelle vous ouvrez Tandoor, port compris (souvent 8080 avec Docker).",
+        "de": "Die Adresse, mit der du Tandoor öffnest, mit Port (mit Docker oft 8080).",
+        "es": "La dirección con la que abre Tandoor, puerto incluido (a menudo 8080 con Docker)."
+      },
+      "placeholder": {
+        "en": "e.g. http://192.168.1.2:8080",
+        "fr": "ex. http://192.168.1.2:8080",
+        "de": "z. B. http://192.168.1.2:8080",
+        "es": "p. ej. http://192.168.1.2:8080"
+      },
+      "required": true
     },
     {
-      "key": "longitude",
-      "type": "number",
-      "label": { "en": "Longitude", "fr": "Longitude" },
-      "description": {
-        "en": "Longitude used for the demo weather sensor.",
-        "fr": "Longitude utilisée par le capteur météo de démonstration."
+      "key": "api_token",
+      "type": "secret",
+      "label": {
+        "en": "Access token",
+        "fr": "Jeton d'accès",
+        "de": "Zugriffstoken",
+        "es": "Token de acceso"
       },
-      "placeholder": { "en": "e.g. 2.3522", "fr": "ex. 2.3522" },
-      "required": true,
-      "default": 2.3522,
-      "min": -180,
-      "max": 180
+      "description": {
+        "en": "Created in Tandoor: Settings → API, scope \"read write\" (\"read\" alone: no adding or checking). It acts as your user.",
+        "fr": "Créé dans Tandoor : Paramètres → API, portée « read write » (« read » seul : ni ajout ni coche). Il agit en votre nom.",
+        "de": "Erstellt in Tandoor: Einstellungen → API, Bereich „read write“ (nur „read“: kein Hinzufügen, kein Abhaken). Es handelt als dein Benutzer.",
+        "es": "Creado en Tandoor: Ajustes → API, alcance «read write» («read» solo: sin añadir ni marcar). Actúa en nombre de su usuario."
+      },
+      "required": true
     },
     {
-      "key": "unit",
-      "type": "select",
-      "label": { "en": "Temperature unit", "fr": "Unité de température" },
+      "key": "allow_self_signed",
+      "type": "boolean",
+      "label": {
+        "en": "Accept self-signed certificates",
+        "fr": "Accepter les certificats auto-signés",
+        "de": "Selbstsignierte Zertifikate akzeptieren",
+        "es": "Aceptar certificados autofirmados"
+      },
+      "description": {
+        "en": "Only for an https:// address whose certificate your browser does not trust either.",
+        "fr": "Seulement pour une adresse en https:// dont le certificat n'est pas reconnu non plus par votre navigateur.",
+        "de": "Nur für eine https://-Adresse, deren Zertifikat auch dein Browser nicht anerkennt.",
+        "es": "Solo para una dirección https:// cuyo certificado tampoco reconoce su navegador."
+      },
       "required": false,
-      "default": "celsius",
+      "default": false
+    },
+    {
+      "key": "poll_interval",
+      "type": "select",
+      "label": {
+        "en": "Refresh interval",
+        "fr": "Intervalle de rafraîchissement",
+        "de": "Aktualisierungsintervall",
+        "es": "Intervalo de actualización"
+      },
+      "description": {
+        "en": "How often Tandoor is read. Gladys' own changes show at once.",
+        "fr": "Fréquence de lecture de Tandoor. Les changements faits depuis Gladys s'affichent tout de suite.",
+        "de": "Wie oft Tandoor gelesen wird. Änderungen aus Gladys erscheinen sofort.",
+        "es": "Frecuencia de lectura de Tandoor. Los cambios hechos desde Gladys se ven al instante."
+      },
+      "required": false,
+      "default": "300",
       "options": [
-        { "value": "celsius", "label": { "en": "Celsius", "fr": "Celsius" } },
-        { "value": "fahrenheit", "label": { "en": "Fahrenheit", "fr": "Fahrenheit" } }
+        {
+          "value": "60",
+          "label": {
+            "en": "1 minute",
+            "fr": "1 minute",
+            "de": "1 Minute",
+            "es": "1 minuto"
+          }
+        },
+        {
+          "value": "120",
+          "label": {
+            "en": "2 minutes",
+            "fr": "2 minutes",
+            "de": "2 Minuten",
+            "es": "2 minutos"
+          }
+        },
+        {
+          "value": "300",
+          "label": {
+            "en": "5 minutes",
+            "fr": "5 minutes",
+            "de": "5 Minuten",
+            "es": "5 minutos"
+          }
+        },
+        {
+          "value": "600",
+          "label": {
+            "en": "10 minutes",
+            "fr": "10 minutes",
+            "de": "10 Minuten",
+            "es": "10 minutos"
+          }
+        },
+        {
+          "value": "900",
+          "label": {
+            "en": "15 minutes",
+            "fr": "15 minutes",
+            "de": "15 Minuten",
+            "es": "15 minutos"
+          }
+        }
       ]
     },
     {
-      "key": "poll_frequency",
-      "type": "number",
-      "label": { "en": "Refresh interval (s)", "fr": "Intervalle de rafraîchissement (s)" },
+      "key": "language",
+      "type": "select",
+      "label": {
+        "en": "Language of the names and messages",
+        "fr": "Langue des noms et des messages",
+        "de": "Sprache der Namen und Meldungen",
+        "es": "Idioma de los nombres y mensajes"
+      },
       "description": {
-        "en": "How often sensors are polled, in seconds (one minute minimum).",
-        "fr": "Fréquence d'interrogation des capteurs, en secondes (une minute minimum)."
+        "en": "Names of the features (set when the device is added) and texts of the scenes.",
+        "fr": "Noms des fonctionnalités (fixés à l'ajout de l'appareil) et textes des scènes.",
+        "de": "Namen der Funktionen (beim Anlegen des Geräts festgelegt) und Texte der Szenen.",
+        "es": "Nombres de las funciones (fijados al añadir el dispositivo) y textos de las escenas."
       },
       "required": false,
-      "default": 300,
-      "min": 60,
-      "max": 3600
+      "default": "fr",
+      "options": [
+        {
+          "value": "en",
+          "label": {
+            "en": "English",
+            "fr": "English",
+            "de": "English",
+            "es": "English"
+          }
+        },
+        {
+          "value": "fr",
+          "label": {
+            "en": "Français",
+            "fr": "Français",
+            "de": "Français",
+            "es": "Français"
+          }
+        },
+        {
+          "value": "de",
+          "label": {
+            "en": "Deutsch",
+            "fr": "Deutsch",
+            "de": "Deutsch",
+            "es": "Deutsch"
+          }
+        },
+        {
+          "value": "es",
+          "label": {
+            "en": "Español",
+            "fr": "Español",
+            "de": "Español",
+            "es": "Español"
+          }
+        }
+      ]
     }
   ],
   "actions": [
     {
-      "key": "test_weather",
-      "label": { "en": "Test the weather provider", "fr": "Tester le fournisseur météo" },
+      "key": "test_connection",
+      "label": {
+        "en": "Test the connection",
+        "fr": "Tester la connexion",
+        "de": "Verbindung testen",
+        "es": "Probar la conexión"
+      },
       "timeout_seconds": 30
-    },
-    {
-      "key": "identify",
-      "label": { "en": "Identify a device", "fr": "Identifier un appareil" },
-      "fields": [
-        {
-          "key": "device",
-          "type": "select",
-          "source": "devices",
-          "label": { "en": "Device", "fr": "Appareil" },
-          "required": true
-        }
-      ]
     }
   ],
   "scene_triggers": [
     {
-      "key": "motion_detected",
-      "label": { "en": "Motion detected", "fr": "Mouvement détecté" },
+      "key": "meal_time",
+      "label": {
+        "en": "Meals of the day",
+        "fr": "Repas du jour",
+        "de": "Mahlzeiten des Tages",
+        "es": "Comidas del día"
+      },
       "description": {
-        "en": "A demo motion sensor saw a person or an animal move.",
-        "fr": "Un détecteur de démonstration a vu bouger une personne ou un animal."
+        "en": "Fires at the chosen hour on a day with meals planned in Tandoor, with the menu.",
+        "fr": "Se déclenche à l'heure choisie un jour où des repas sont prévus dans Tandoor, avec le menu.",
+        "de": "Löst zur gewählten Uhrzeit an einem Tag mit in Tandoor geplanten Mahlzeiten aus, mit dem Menü.",
+        "es": "Se activa a la hora elegida un día con comidas previstas en Tandoor, con el menú."
       },
       "fields": [
         {
-          "key": "device",
-          "type": "select",
-          "source": "devices",
-          "label": { "en": "Sensor", "fr": "Détecteur" }
-        },
-        {
-          "key": "target",
-          "type": "multi_select",
-          "label": { "en": "What moved", "fr": "Ce qui a bougé" },
-          "options": [
-            { "value": "person", "label": { "en": "Person", "fr": "Personne" } },
-            { "value": "animal", "label": { "en": "Animal", "fr": "Animal" } }
-          ]
+          "key": "hour",
+          "type": "number",
+          "label": {
+            "en": "Hour (0 to 23)",
+            "fr": "Heure (0 à 23)",
+            "de": "Stunde (0 bis 23)",
+            "es": "Hora (0 a 23)"
+          },
+          "description": {
+            "en": "For example 17 to know at 5 pm what to cook tonight.",
+            "fr": "Par exemple 17 pour savoir à 17 h quoi cuisiner ce soir.",
+            "de": "Zum Beispiel 17, um um 17 Uhr zu wissen, was du heute Abend kochst.",
+            "es": "Por ejemplo 17 para saber a las 17 h qué cocinar esta noche."
+          },
+          "required": true,
+          "default": 17,
+          "min": 0,
+          "max": 23
         }
       ],
       "variables": [
         {
-          "key": "target",
+          "key": "meals",
           "type": "string",
-          "label": { "en": "What moved", "fr": "Ce qui a bougé" }
+          "label": {
+            "en": "Every meal of the day",
+            "fr": "Tous les repas du jour",
+            "de": "Alle Mahlzeiten des Tages",
+            "es": "Todas las comidas del día"
+          }
+        },
+        {
+          "key": "recipes",
+          "type": "string",
+          "label": {
+            "en": "Recipes, comma separated",
+            "fr": "Recettes, séparées par des virgules",
+            "de": "Rezepte, durch Kommas getrennt",
+            "es": "Recetas, separadas por comas"
+          }
+        },
+        {
+          "key": "count",
+          "type": "number",
+          "label": {
+            "en": "Meals planned",
+            "fr": "Repas prévus",
+            "de": "Geplante Mahlzeiten",
+            "es": "Comidas previstas"
+          }
+        }
+      ]
+    },
+    {
+      "key": "shopping_list_changed",
+      "label": {
+        "en": "Shopping list changed",
+        "fr": "Liste de courses modifiée",
+        "de": "Einkaufsliste geändert",
+        "es": "Lista de la compra modificada"
+      },
+      "description": {
+        "en": "Items added or checked in Tandoor (app, another user); not the changes made from Gladys.",
+        "fr": "Articles ajoutés ou cochés dans Tandoor (appli, autre utilisateur) ; pas les changements faits depuis Gladys.",
+        "de": "Einträge in Tandoor hinzugefügt oder abgehakt (App, anderer Benutzer); nicht die Änderungen aus Gladys.",
+        "es": "Artículos añadidos o marcados en Tandoor (app, otro usuario); no los cambios hechos desde Gladys."
+      },
+      "fields": [],
+      "variables": [
+        {
+          "key": "added",
+          "type": "string",
+          "label": {
+            "en": "Items added",
+            "fr": "Articles ajoutés",
+            "de": "Hinzugefügte Einträge",
+            "es": "Artículos añadidos"
+          }
+        },
+        {
+          "key": "removed",
+          "type": "string",
+          "label": {
+            "en": "Items checked or removed",
+            "fr": "Articles cochés ou retirés",
+            "de": "Abgehakte oder entfernte Einträge",
+            "es": "Artículos marcados o quitados"
+          }
+        },
+        {
+          "key": "added_count",
+          "type": "number",
+          "label": {
+            "en": "Number added",
+            "fr": "Nombre ajoutés",
+            "de": "Anzahl hinzugefügt",
+            "es": "Número añadidos"
+          }
+        },
+        {
+          "key": "removed_count",
+          "type": "number",
+          "label": {
+            "en": "Number checked or removed",
+            "fr": "Nombre cochés ou retirés",
+            "de": "Anzahl abgehakt oder entfernt",
+            "es": "Número marcados o quitados"
+          }
+        },
+        {
+          "key": "to_buy",
+          "type": "number",
+          "label": {
+            "en": "Items to buy",
+            "fr": "Articles à acheter",
+            "de": "Einträge zu kaufen",
+            "es": "Artículos por comprar"
+          }
         }
       ]
     }
   ],
   "scene_actions": [
     {
-      "key": "identify_device",
-      "label": { "en": "Identify a device", "fr": "Identifier un appareil" },
-      "description": {
-        "en": "Make a device signal itself (the demo light blinks).",
-        "fr": "Fait se signaler un appareil (la lampe de démonstration clignote)."
+      "key": "add_shopping_item",
+      "label": {
+        "en": "Add to the shopping list",
+        "fr": "Ajouter à la liste de courses",
+        "de": "Zur Einkaufsliste hinzufügen",
+        "es": "Añadir a la lista de la compra"
       },
-      "timeout_seconds": 15,
+      "description": {
+        "en": "Adds an item (\"2 kg tomatoes\") to the Tandoor shopping list, unless it is already on it.",
+        "fr": "Ajoute un article (« 2 kg tomates ») à la liste de courses Tandoor, sauf s'il y est déjà.",
+        "de": "Fügt einen Eintrag („2 kg Tomaten“) zur Einkaufsliste von Tandoor hinzu, außer er steht schon darauf.",
+        "es": "Añade un artículo («2 kg tomates») a la lista de la compra de Tandoor, salvo si ya está en ella."
+      },
+      "timeout_seconds": 20,
       "fields": [
         {
-          "key": "device",
-          "type": "select",
-          "source": "devices",
-          "label": { "en": "Device", "fr": "Appareil" },
+          "key": "item",
+          "type": "string",
+          "label": {
+            "en": "Item",
+            "fr": "Article",
+            "de": "Eintrag",
+            "es": "Artículo"
+          },
+          "description": {
+            "en": "As you would type it in Tandoor: amount and unit are understood.",
+            "fr": "Comme vous le taperiez dans Tandoor : quantité et unité sont comprises.",
+            "de": "So, wie du ihn in Tandoor eingeben würdest: Menge und Einheit werden erkannt.",
+            "es": "Como lo escribiría en Tandoor: se entienden la cantidad y la unidad."
+          },
+          "placeholder": {
+            "en": "e.g. Milk",
+            "fr": "ex. Lait",
+            "de": "z. B. Milch",
+            "es": "p. ej. Leche"
+          },
           "required": true
+        },
+        {
+          "key": "list",
+          "type": "string",
+          "label": {
+            "en": "Shopping list",
+            "fr": "Liste de courses",
+            "de": "Einkaufsliste",
+            "es": "Lista de la compra"
+          },
+          "description": {
+            "en": "Its name in Tandoor. Empty: the whole shopping list.",
+            "fr": "Son nom dans Tandoor. Vide : toute la liste de courses.",
+            "de": "Der Name der Liste in Tandoor. Leer: die ganze Einkaufsliste.",
+            "es": "Su nombre en Tandoor. Vacío: toda la lista de la compra."
+          },
+          "placeholder": {
+            "en": "e.g. Supermarket",
+            "fr": "ex. Supermarché",
+            "de": "z. B. Supermarkt",
+            "es": "p. ej. Supermercado"
+          },
+          "required": false
         }
       ],
       "outputs": [
         {
-          "key": "signalled",
+          "key": "added",
           "type": "boolean",
-          "label": { "en": "Device signalled", "fr": "Appareil signalé" }
+          "label": {
+            "en": "Item added",
+            "fr": "Article ajouté",
+            "de": "Eintrag hinzugefügt",
+            "es": "Artículo añadido"
+          }
+        },
+        {
+          "key": "item",
+          "type": "string",
+          "label": {
+            "en": "Item",
+            "fr": "Article",
+            "de": "Eintrag",
+            "es": "Artículo"
+          }
+        },
+        {
+          "key": "list",
+          "type": "string",
+          "label": {
+            "en": "Shopping list",
+            "fr": "Liste de courses",
+            "de": "Einkaufsliste",
+            "es": "Lista de la compra"
+          }
+        },
+        {
+          "key": "to_buy",
+          "type": "number",
+          "label": {
+            "en": "Items to buy",
+            "fr": "Articles à acheter",
+            "de": "Einträge zu kaufen",
+            "es": "Artículos por comprar"
+          }
+        }
+      ]
+    },
+    {
+      "key": "check_shopping_item",
+      "label": {
+        "en": "Check a shopping list item",
+        "fr": "Cocher un article de la liste de courses",
+        "de": "Eintrag der Einkaufsliste abhaken",
+        "es": "Marcar un artículo de la lista de la compra"
+      },
+      "description": {
+        "en": "Checks an item still to buy, as in the Tandoor app (unchecking it there undoes it).",
+        "fr": "Coche un article encore à acheter, comme dans l'appli Tandoor (le décocher là-bas l'annule).",
+        "de": "Hakt einen noch zu kaufenden Eintrag ab, wie in Tandoor (dort abwählen macht es rückgängig).",
+        "es": "Marca un artículo aún por comprar, como en Tandoor (desmarcarlo allí lo deshace)."
+      },
+      "timeout_seconds": 20,
+      "fields": [
+        {
+          "key": "item",
+          "type": "string",
+          "label": {
+            "en": "Item",
+            "fr": "Article",
+            "de": "Eintrag",
+            "es": "Artículo"
+          },
+          "description": {
+            "en": "Its name on the list, upper case and accents ignored.",
+            "fr": "Son nom sur la liste, sans tenir compte des majuscules ni des accents.",
+            "de": "Sein Name auf der Liste, Groß- und Kleinschreibung und Akzente egal.",
+            "es": "Su nombre en la lista, sin tener en cuenta mayúsculas ni acentos."
+          },
+          "placeholder": {
+            "en": "e.g. Milk",
+            "fr": "ex. Lait",
+            "de": "z. B. Milch",
+            "es": "p. ej. Leche"
+          },
+          "required": true
+        },
+        {
+          "key": "list",
+          "type": "string",
+          "label": {
+            "en": "Shopping list",
+            "fr": "Liste de courses",
+            "de": "Einkaufsliste",
+            "es": "Lista de la compra"
+          },
+          "description": {
+            "en": "Its name in Tandoor. Empty: the whole shopping list.",
+            "fr": "Son nom dans Tandoor. Vide : toute la liste de courses.",
+            "de": "Der Name der Liste in Tandoor. Leer: die ganze Einkaufsliste.",
+            "es": "Su nombre en Tandoor. Vacío: toda la lista de la compra."
+          },
+          "placeholder": {
+            "en": "e.g. Supermarket",
+            "fr": "ex. Supermarché",
+            "de": "z. B. Supermarkt",
+            "es": "p. ej. Supermercado"
+          },
+          "required": false
+        }
+      ],
+      "outputs": [
+        {
+          "key": "checked",
+          "type": "boolean",
+          "label": {
+            "en": "Item checked",
+            "fr": "Article coché",
+            "de": "Eintrag abgehakt",
+            "es": "Artículo marcado"
+          }
+        },
+        {
+          "key": "item",
+          "type": "string",
+          "label": {
+            "en": "Item",
+            "fr": "Article",
+            "de": "Eintrag",
+            "es": "Artículo"
+          }
+        },
+        {
+          "key": "list",
+          "type": "string",
+          "label": {
+            "en": "Shopping list",
+            "fr": "Liste de courses",
+            "de": "Einkaufsliste",
+            "es": "Lista de la compra"
+          }
+        },
+        {
+          "key": "to_buy",
+          "type": "number",
+          "label": {
+            "en": "Items to buy",
+            "fr": "Articles à acheter",
+            "de": "Einträge zu kaufen",
+            "es": "Artículos por comprar"
+          }
+        }
+      ]
+    },
+    {
+      "key": "get_meals",
+      "label": {
+        "en": "Get the meals of a day",
+        "fr": "Lire les repas d'un jour",
+        "de": "Mahlzeiten eines Tages lesen",
+        "es": "Leer las comidas de un día"
+      },
+      "description": {
+        "en": "The menu of a day from the Tandoor meal plan, to put in a message.",
+        "fr": "Le menu d'un jour du planning Tandoor, à mettre dans un message.",
+        "de": "Das Menü eines Tages aus dem Essensplan von Tandoor, für eine Nachricht.",
+        "es": "El menú de un día del planificador de Tandoor, para ponerlo en un mensaje."
+      },
+      "timeout_seconds": 15,
+      "fields": [
+        {
+          "key": "day",
+          "type": "select",
+          "label": {
+            "en": "Day",
+            "fr": "Jour",
+            "de": "Tag",
+            "es": "Día"
+          },
+          "required": true,
+          "default": "today",
+          "options": [
+            {
+              "value": "today",
+              "label": {
+                "en": "Today",
+                "fr": "Aujourd'hui",
+                "de": "Heute",
+                "es": "Hoy"
+              }
+            },
+            {
+              "value": "tomorrow",
+              "label": {
+                "en": "Tomorrow",
+                "fr": "Demain",
+                "de": "Morgen",
+                "es": "Mañana"
+              }
+            },
+            {
+              "value": "day_after_tomorrow",
+              "label": {
+                "en": "Day after tomorrow",
+                "fr": "Après-demain",
+                "de": "Übermorgen",
+                "es": "Pasado mañana"
+              }
+            }
+          ]
+        }
+      ],
+      "outputs": [
+        {
+          "key": "summary",
+          "type": "string",
+          "label": {
+            "en": "Every meal of the day",
+            "fr": "Tous les repas du jour",
+            "de": "Alle Mahlzeiten des Tages",
+            "es": "Todas las comidas del día"
+          }
+        },
+        {
+          "key": "recipes",
+          "type": "string",
+          "label": {
+            "en": "Recipes, comma separated",
+            "fr": "Recettes, séparées par des virgules",
+            "de": "Rezepte, durch Kommas getrennt",
+            "es": "Recetas, separadas por comas"
+          }
+        },
+        {
+          "key": "count",
+          "type": "number",
+          "label": {
+            "en": "Meals planned",
+            "fr": "Repas prévus",
+            "de": "Geplante Mahlzeiten",
+            "es": "Comidas previstas"
+          }
+        }
+      ]
+    },
+    {
+      "key": "get_shopping_list",
+      "label": {
+        "en": "Get a shopping list",
+        "fr": "Lire une liste de courses",
+        "de": "Einkaufsliste lesen",
+        "es": "Leer una lista de la compra"
+      },
+      "description": {
+        "en": "The items still to buy, to send in a message.",
+        "fr": "Les articles encore à acheter, à envoyer dans un message.",
+        "de": "Die noch zu kaufenden Einträge, für eine Nachricht.",
+        "es": "Los artículos aún por comprar, para enviarlos en un mensaje."
+      },
+      "timeout_seconds": 15,
+      "fields": [
+        {
+          "key": "list",
+          "type": "string",
+          "label": {
+            "en": "Shopping list",
+            "fr": "Liste de courses",
+            "de": "Einkaufsliste",
+            "es": "Lista de la compra"
+          },
+          "description": {
+            "en": "Its name in Tandoor. Empty: the whole shopping list.",
+            "fr": "Son nom dans Tandoor. Vide : toute la liste de courses.",
+            "de": "Der Name der Liste in Tandoor. Leer: die ganze Einkaufsliste.",
+            "es": "Su nombre en Tandoor. Vacío: toda la lista de la compra."
+          },
+          "placeholder": {
+            "en": "e.g. Supermarket",
+            "fr": "ex. Supermarché",
+            "de": "z. B. Supermarkt",
+            "es": "p. ej. Supermercado"
+          },
+          "required": false
+        }
+      ],
+      "outputs": [
+        {
+          "key": "items",
+          "type": "string",
+          "label": {
+            "en": "Items to buy, comma separated",
+            "fr": "Articles à acheter, séparés par des virgules",
+            "de": "Einträge zu kaufen, durch Kommas getrennt",
+            "es": "Artículos por comprar, separados por comas"
+          }
+        },
+        {
+          "key": "to_buy",
+          "type": "number",
+          "label": {
+            "en": "Items to buy",
+            "fr": "Articles à acheter",
+            "de": "Einträge zu kaufen",
+            "es": "Artículos por comprar"
+          }
+        },
+        {
+          "key": "list",
+          "type": "string",
+          "label": {
+            "en": "Shopping list",
+            "fr": "Liste de courses",
+            "de": "Einkaufsliste",
+            "es": "Lista de la compra"
+          }
         }
       ]
     }
   ],
   "widgets": [
     {
-      "key": "demo_status",
-      "label": { "en": "Demo status", "fr": "État de la démo" },
-      "description": {
-        "en": "Live temperature and plug power, plug connection and observed location.",
-        "fr": "Température et puissance en direct, connexion de la prise, position observée."
+      "key": "meal_plan",
+      "label": {
+        "en": "Meal plan",
+        "fr": "Menu",
+        "de": "Speiseplan",
+        "es": "Menú"
       },
-      "icon": "activity",
-      "action_timeout_seconds": 15
+      "description": {
+        "en": "Today's meals or the next seven days of the Tandoor meal plan.",
+        "fr": "Les repas du jour ou des sept jours à venir du planning Tandoor.",
+        "de": "Die Mahlzeiten von heute oder der nächsten sieben Tage aus Tandoor.",
+        "es": "Las comidas de hoy o de los próximos siete días de Tandoor."
+      },
+      "icon": "calendar",
+      "action_timeout_seconds": 20,
+      "settings": [
+        {
+          "key": "period",
+          "type": "select",
+          "label": {
+            "en": "Period",
+            "fr": "Période",
+            "de": "Zeitraum",
+            "es": "Periodo"
+          },
+          "required": false,
+          "default": "today",
+          "options": [
+            {
+              "value": "today",
+              "label": {
+                "en": "Today",
+                "fr": "Aujourd'hui",
+                "de": "Heute",
+                "es": "Hoy"
+              }
+            },
+            {
+              "value": "week",
+              "label": {
+                "en": "Next 7 days",
+                "fr": "7 prochains jours",
+                "de": "Nächste 7 Tage",
+                "es": "Próximos 7 días"
+              }
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "key": "shopping_list",
+      "label": {
+        "en": "Shopping list",
+        "fr": "Liste de courses",
+        "de": "Einkaufsliste",
+        "es": "Lista de la compra"
+      },
+      "description": {
+        "en": "The items still to buy, to add or check from the dashboard.",
+        "fr": "Les articles encore à acheter, à ajouter ou cocher du tableau de bord.",
+        "de": "Die noch zu kaufenden Einträge, vom Dashboard aus ergänzen oder abhaken.",
+        "es": "Los artículos por comprar, para añadir o marcar desde el panel."
+      },
+      "icon": "shopping-cart",
+      "action_timeout_seconds": 20,
+      "settings": [
+        {
+          "key": "list",
+          "type": "string",
+          "label": {
+            "en": "Shopping list",
+            "fr": "Liste de courses",
+            "de": "Einkaufsliste",
+            "es": "Lista de la compra"
+          },
+          "description": {
+            "en": "Its name in Tandoor. Empty: the whole shopping list.",
+            "fr": "Son nom dans Tandoor. Vide : toute la liste de courses.",
+            "de": "Der Name der Liste in Tandoor. Leer: die ganze Einkaufsliste.",
+            "es": "Su nombre en Tandoor. Vacío: toda la lista de la compra."
+          },
+          "placeholder": {
+            "en": "e.g. Supermarket",
+            "fr": "ex. Supermarché",
+            "de": "z. B. Supermarkt",
+            "es": "p. ej. Supermercado"
+          },
+          "required": false
+        }
+      ]
     }
   ]
 }

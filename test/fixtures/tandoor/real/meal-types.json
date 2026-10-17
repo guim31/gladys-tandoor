@@ -1,0 +1,32 @@
+{
+  "count": 3,
+  "next": null,
+  "previous": null,
+  "timestamp": "2026-10-17T13:11:55.914013+00:00",
+  "results": [
+    {
+      "id": 1,
+      "name": "Déjeuner",
+      "order": 1,
+      "time": "12:30:00",
+      "color": null,
+      "created_by": 1
+    },
+    {
+      "id": 2,
+      "name": "Dîner",
+      "order": 2,
+      "time": "19:30:00",
+      "color": null,
+      "created_by": 1
+    },
+    {
+      "id": 3,
+      "name": "Petit-déjeuner",
+      "order": 0,
+      "time": null,
+      "color": null,
+      "created_by": 1
+    }
+  ]
+}

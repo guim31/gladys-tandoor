@@ -1,0 +1,22 @@
+{
+  "shopping_min_autosync_interval": "5",
+  "disable_external_connectors": false,
+  "terms_url": "",
+  "privacy_url": "",
+  "imprint_url": "",
+  "hosted": false,
+  "debug": false,
+  "version": "2.6.15",
+  "unauthenticated_theme_from_space": 0,
+  "force_theme_from_space": 0,
+  "logo_color_32": null,
+  "logo_color_128": null,
+  "logo_color_144": null,
+  "logo_color_180": null,
+  "logo_color_192": null,
+  "logo_color_512": null,
+  "logo_color_svg": null,
+  "custom_space_theme": null,
+  "nav_logo": null,
+  "nav_bg_color": null
+}

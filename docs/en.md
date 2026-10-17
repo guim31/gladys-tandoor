@@ -1,61 +1,205 @@
-# Demo Devices Template
+# Tandoor Recipes
 
-This is the user documentation of the integration. Gladys re-hosts this file
-and shows a permanent **Documentation** link to it in the Configuration screen
-(in the user's language, with English as the fallback) — it is when
-configuring that the user needs it most. Keep the short onboarding hints in
-the `section` blocks of the manifest `config_schema`; put the long
-step-by-step (screenshots, troubleshooting…) here.
+[Tandoor Recipes](https://tandoor.dev/) is a self-hosted recipe manager: your
+recipes, a meal plan and a shared shopping list. This integration brings it
+into Gladys: one device shows what is planned today for each meal, tomorrow's
+meals, the meals planned this week and the items left to buy; scenes can start
+at the hour you choose with the menu of the day, or when the shopping list
+changes in Tandoor, add an item to the list ("the milk is finished"), check
+one, or send the menu or the list; two dashboard widgets show the menu and the
+shopping list, with buttons to add and check from the wall tablet.
 
-## What you get
+Tested against a real Tandoor Recipes 2.6.15 server (in Docker); not yet on a
+real Gladys installation: feedback welcome on
+[the issues](https://github.com/guim31/gladys-tandoor/issues).
 
-Six demo devices show up after installation: a weather station (real data
-from Open-Meteo), a switch, a dimmable light, a smart plug with power
-metering, a motion sensor and a camera.
+## What you need
 
-## Configuration
+- Gladys Assistant 5.2.0 or later.
+- Tandoor Recipes 2.x, reachable from the Gladys machine: on the local network,
+  or on the Internet in HTTPS.
+- An access token of a Tandoor user, with the `read write` scope (`read` alone
+  is enough to read, not to add or check an item). It acts as that user, in
+  the user's active space.
 
-1. Open the **Configuration** tab of the integration.
-2. Set the **latitude** and **longitude** the demo weather station should
-   observe (they default to Paris), and pick your temperature unit.
-   The **refresh interval** sets how often the weather station and the
-   plug's power are read: every 5 minutes by default, every minute at most.
-3. Save: the devices appear in the **Discovery** tab, ready to be added.
+## Getting started
 
-The **Prefer the local connection** toggle drives the demo plug: it reports
-the channel it actually uses as a badge (local or cloud), with an orange dot
-when it runs degraded (local refused, cloud fallback).
+### 1. Create an access token
 
-## Actions
+In Tandoor, open **Settings**, then **API**, and create a token with the scope
+`read write` and a far expiry date. Copy the token (`tda_…`): Tandoor shows it
+in full only right after its creation.
 
-- **Test the weather provider** — performs a live request to Open-Meteo and
-  shows the current temperature and humidity under the button.
-- **Identify a device** — pick one of your devices in the list and it will
-  signal itself (the demo light "blinks" in the logs).
+### 2. Configure the integration
+
+In Gladys, **Integrations → Tandoor Recipes → Configuration**:
+
+- **Tandoor address**: the address you open Tandoor with, port included, for
+  example `http://192.168.1.2:8080` or `https://recipes.example.com`. An
+  address copied from the browser (`…/mealplan`) works too.
+- **Access token**: the token of step 1.
+- **Accept self-signed certificates**: only for an `https://` address whose
+  certificate your browser does not trust either.
+- **Refresh interval**: how often Tandoor is read, 5 minutes by default (1 to
+  15 minutes). What you do from Gladys shows at once.
+- **Language of the names and messages**: the language of the feature names
+  and of the texts of the scenes (French by default).
+
+Save, then click **Test the connection**: Tandoor answers with its version, the
+space and what it holds.
+
+### 3. Add the device
+
+In **Integrations → Tandoor Recipes → Discover**, add the **Tandoor** device.
+Its values appear at once. When a meal type or a shopping list is created in
+Tandoor, the device offers **Update** in the Discover tab: its feature is added
+then.
+
+## The Tandoor device
+
+One device per Tandoor space (the active space of the token's user). Its
+features:
+
+| Feature                   | Type    | Value                                                            |
+| ------------------------- | ------- | ---------------------------------------------------------------- |
+| `<meal type> today`       | Text    | One per meal type of Tandoor: what is planned, "Nothing planned" |
+| `Meals tomorrow`          | Text    | Tomorrow's meals, `Dinner: Lasagna`, or "Nothing planned"        |
+| `Meals planned this week` | Counter | Meals planned in the next 7 days, today included                 |
+| `Items to buy`            | Counter | Items still to buy on the whole shopping list                    |
+| `To buy: <list>`          | Counter | Items still to buy on each Tandoor shopping list                 |
+
+The meal types are the ones of your Tandoor (`Breakfast`, `Lunch`, `Dinner`…,
+in their order of the day, 10 at most), with the names you gave them. A meal
+plan entry shows its title, or else its recipe; two entries for one meal show
+as `Lasagna · Salad`. An entry over several days counts on each of them. An
+item postponed in Tandoor ("delay") is not to buy until its date. "Today"
+follows the time zone of Gladys: right after midnight, tomorrow's meals become
+today's. The names are given in the language of the configuration when the
+device is added, and stay as they are then (a Gladys rule).
+
+## Dashboard widgets
+
+In **Dashboard → Edit dashboard**, add a widget of the **Tandoor Recipes**
+integration.
+
+### Meal plan
+
+- **Period: Today**: the date and one row per meal type planned today.
+- **Period: Next 7 days**: one row per day, today and tomorrow marked; tap a
+  day to see its meals.
+- **Refresh** reads Tandoor again.
+- **Open Tandoor** opens the meal plan, when Tandoor has an `https://` address
+  (Gladys opens no other links).
+
+### Shopping list
+
+The items still to buy (setting **Shopping list**: the name of a Tandoor list;
+empty: the whole shopping list), with their amount and unit.
+
+- **Add** opens a form with one field, **Item**, read like a line typed in
+  Tandoor: `Milk`, `2 kg tomatoes`. An item already on the list (upper case,
+  accents and plural aside) is not added twice.
+- **Check** opens a form listing the items: the chosen one is checked in
+  Tandoor, as in its app (unchecking it there undoes it).
+- **Refresh** reads Tandoor again.
+- **Open Tandoor** opens the shopping list, when Tandoor has an `https://`
+  address.
 
 ## Scenes
 
-The integration adds its own cards to the scene editor (Gladys 5.1 or
-later), under the **Integrations** category:
+### Triggers
 
-- **Motion detected** (trigger) — starts the scene when a demo motion sensor
-  sees something move. Optionally pick the sensor and what moved (person,
-  animal); left empty, any detection matches. The following actions can
-  read what moved with `{{triggerEvent.data.target}}`.
-- **Identify a device** (action) — makes the chosen device signal itself.
-  It returns whether the device could signal itself, so the following
-  actions can depend on it.
+| Trigger                   | Filter         | Variables                                                    |
+| ------------------------- | -------------- | ------------------------------------------------------------ |
+| **Meals of the day**      | Hour (0 to 23) | Every meal of the day, recipes, meals planned                |
+| **Shopping list changed** | (none)         | Items added, items checked or removed, their numbers, to buy |
 
-## Dashboard
+- **Meals of the day** fires at the chosen hour, on a day with at least one
+  meal planned in Tandoor: 17 to know at 5 pm what to cook tonight. A day with
+  nothing planned fires nothing.
+- **Shopping list changed** fires when items were added, checked or removed in
+  Tandoor (its app, another user), seen at the next reading. What Gladys did
+  itself (a scene, the widget) fires nothing: a scene bound to this trigger
+  cannot loop.
 
-Add the **Demo status** widget to a dashboard: it shows the live
-temperature of the weather station and the power of the office plug, the
-connection the plug currently uses (orange when degraded) and the observed
-location. Its **Identify the light** button makes the demo light signal
-itself.
+### Actions
+
+| Action                         | Fields                                    | Results                                         |
+| ------------------------------ | ----------------------------------------- | ----------------------------------------------- |
+| **Add to the shopping list**   | Item, Shopping list (empty: whole list)   | Item added (yes/no), Item, list, items to buy   |
+| **Check a shopping list item** | Item, Shopping list                       | Item checked (yes/no), Item, list, items to buy |
+| **Get the meals of a day**     | Day (today, tomorrow, day after tomorrow) | Every meal of the day, recipes, meals planned   |
+| **Get a shopping list**        | Shopping list                             | Items to buy (comma separated), number, list    |
+
+- An item is typed as in Tandoor: `2 kg tomatoes` gives 2 kg of the food
+  "tomatoes" (the ingredient parser of Tandoor, which creates a new food or
+  unit as typing it in Tandoor would).
+- An item is found the way you say it: `oeufs` finds `Œufs`, `tomato` finds
+  `Tomatoes`. A list is found by its name, or by its beginning (`super` for
+  `Supermarket`).
+- An item already on the list is not added again: the result **Item added** is
+  then "no". An item not on the list is not an error: **Item checked** is "no".
+- The results go into the next actions of the scene, for example a message
+  `Tonight: {{0.0.summary}}` (`0.0`: the position of the action in the scene;
+  the message editor lists the results).
+
+### Scene ideas
+
+- **What do we eat tonight?**: trigger **Meals of the day** at 17, then send
+  `{{triggerEvent.data.meals}}` on Telegram.
+- **"The milk is finished"**: a button (or a voice assistant) runs **Add to the
+  shopping list** with `Milk`.
+- **Someone added to the list**: trigger **Shopping list changed**, then send
+  `Added: {{triggerEvent.data.added}}` to the one who does the shopping.
+- **On the way to the shops**: when someone leaves work, **Get a shopping
+  list**, then send its items if there are some.
+
+## Refresh and use of the Tandoor API
+
+The integration reads Tandoor on its own timer (Gladys does not poll it), at
+the interval of the configuration, and right after midnight. One reading is
+four requests: the meal types, the meal plan of the coming days, the shopping
+lists and the shopping list entries (more pages past 200 entries); "who am I"
+(version and space) is read again once an hour. Tandoor sets no API quota. A
+scene action, a widget or a new hour reads Tandoor again when the last reading
+is older than 30 seconds; what the integration changes is read again at once.
+
+Only the values that change are sent to Gladys, and every value again every 6
+hours.
 
 ## Troubleshooting
 
-The integration logs everything it does: check the integration logs from the
-Gladys UI (or `docker logs` on the host) with `LOG_LEVEL=debug` for the full
-detail.
+- **"access token refused"**: the token was deleted, expired, or belongs to
+  another Tandoor. Create a new one (step 1).
+- **"the access token may only read"**: the token has the `read` scope; create
+  one with `read write` to add or check items.
+- **"Tandoor does not answer"**: check the address and the port from the Gladys
+  machine (`http://<address>:8080/api/server-settings/current/` must answer).
+  The device badge then shows "unreachable", and its values stay the last ones
+  read.
+- **"certificate refused"**: tick **Accept self-signed certificates**, or use
+  the `http://` address on the local network.
+- **"no Tandoor Recipes 2 at this address"**: the address answers with another
+  web page (a reverse proxy login page…), or Tandoor is a 1.x version: use the
+  address of Tandoor itself, and update it.
+- **A meal type or a list has no feature**: open the Discover tab and click
+  **Update** on the Tandoor device.
+- **More details**: set the `LOG_LEVEL` environment variable to `debug`; the
+  logs never contain the access token.
+
+## Limits
+
+- One Tandoor space per integration: the active space of the token's user.
+- The device follows 10 meal types and 20 shopping lists at most; the rest of
+  the week is in the widget and in **Get the meals of a day**.
+- Items are never deleted: checked items stay in Tandoor until you clear them
+  there. The integration does not plan recipes.
+- **Meals of the day** fires at the start of the hour; the hour already begun
+  when the integration starts (an update, a restart) is not fired.
+- **Shopping list changed** sees the changes at the next reading (5 minutes by
+  default), and a change undone in between is not seen.
+- The **Check** form lists the first 50 items; the widget shows 7 items and
+  the number of the others.
+- **Open Tandoor** appears only for an `https://` address.
+- Not tested on a real Gladys installation yet; tested against a real Tandoor
+  Recipes 2.6.15 server.

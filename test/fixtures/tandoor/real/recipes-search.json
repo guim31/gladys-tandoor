@@ -1,0 +1,35 @@
+{
+  "count": 1,
+  "next": null,
+  "previous": null,
+  "results": [
+    {
+      "id": 1,
+      "name": "Lasagnes",
+      "description": null,
+      "image": null,
+      "keywords": [],
+      "working_time": 0,
+      "waiting_time": 0,
+      "created_by": {
+        "id": 1,
+        "username": "chef",
+        "first_name": "",
+        "last_name": "",
+        "display_name": "chef",
+        "is_staff": false,
+        "is_superuser": false,
+        "is_active": true
+      },
+      "created_at": "2026-10-17T15:11:14.738539+02:00",
+      "updated_at": "2026-10-17T15:11:14.746855+02:00",
+      "internal": false,
+      "private": false,
+      "servings": 4,
+      "servings_text": "",
+      "rating": null,
+      "last_cooked": null,
+      "new": true
+    }
+  ]
+}
