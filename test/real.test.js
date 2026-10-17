@@ -90,6 +90,18 @@ test(
       0,
       'the changes made from Gladys fire no trigger',
     );
+    // Another user adds an item in Tandoor: the next reading fires the trigger.
+    const other = `Other user ${Date.now()}`;
+    const response = await fetch(`${TANDOOR_URL}/api/shopping-list-entry/`, {
+      method: 'POST',
+      headers: { authorization: `Bearer ${TANDOOR_TOKEN}`, 'content-type': 'application/json' },
+      body: JSON.stringify({ food: { name: other }, amount: 0 }),
+    });
+    assert.equal(response.status, 201);
+    await w.hub.pollNow();
+    const [event] = w.fake.sceneEvents.filter((e) => e.key === TRIGGER_KEYS.SHOPPING_LIST_CHANGED);
+    assert.equal(event?.data.added, other);
+    t.diagnostic(JSON.stringify(event.data));
   },
 );
 
