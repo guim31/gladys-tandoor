@@ -75,8 +75,9 @@ export const DAYS = Object.freeze({ today: 0, tomorrow: 1, day_after_tomorrow: 2
 // Days of meal plan the device and the widget show (today included).
 export const WEEK_DAYS = 7;
 // Meal plan entries are filtered by Tandoor on their end date: an entry
-// ending this many days ahead may still cover the week.
-const PLAN_LOOKAHEAD_DAYS = 30;
+// ending this many days ahead (a breakfast planned for months) may still
+// cover the week.
+const PLAN_LOOKAHEAD_DAYS = 366;
 
 // Item names listed in the trigger variables, at most (the rest is counted).
 export const MAX_EVENT_ITEMS = 20;
@@ -200,7 +201,13 @@ export class TandoorHub {
     /** Entry ids Gladys itself added or checked: not reported by the trigger. */
     this.ownChanges = new Set();
     /** The `shopping_list_changed` data of the last reading, until published. */
-    this.pendingShoppingEvent = null;
+    this.pendingShoppingEvents = [];
+    /** Writes to Tandoor in progress, and how many ended: a reading begun
+     * before a write ended cannot tell Gladys' change from another one. */
+    this.writing = 0;
+    this.writeSeq = 0;
+    this.pollingClient = null;
+    this.pollingSeq = 0;
     /** The last hour seen by the clock (`YYYY-MM-DDTHH`). */
     this.hourSlot = null;
     // What fails again at every cycle (Gladys refusing, the reading loop):
@@ -213,8 +220,12 @@ export class TandoorHub {
   async start(config) {
     // The hour already begun is not fired: the container may just restart.
     this.hourSlot = this.currentSlot();
-    await this.reconfigure(config);
-    this.scheduleClock();
+    try {
+      await this.reconfigure(config);
+    } finally {
+      // The meal_time clock runs even when the first reading threw.
+      this.scheduleClock();
+    }
   }
 
   /** Gladys reconnected (it restarted): send everything again. */
@@ -325,8 +336,19 @@ export class TandoorHub {
    * Concurrent calls share the reading.
    */
   async pollNow({ publish = false } = {}) {
+    // A reading begun with another client (reconfigured) or before the last
+    // write ended is outdated: let it end, then read again.
+    while (
+      this.polling &&
+      (this.pollingClient !== this.client || this.pollingSeq < this.writeSeq)
+    ) {
+      await this.polling.catch(() => {});
+    }
     if (!this.polling) {
-      this.polling = this.read().finally(() => {
+      this.pollingClient = this.client;
+      this.pollingSeq = this.writeSeq;
+      const seq = this.writeSeq;
+      this.polling = this.read(seq).finally(() => {
         this.polling = null;
       });
     }
@@ -343,7 +365,7 @@ export class TandoorHub {
   }
 
   /** @returns {Promise<boolean>} whether the widgets show something new */
-  async read() {
+  async read(seq = this.writeSeq) {
     if (!this.client) {
       return false;
     }
@@ -351,7 +373,11 @@ export class TandoorHub {
     try {
       const now = this.now();
       if (!this.identity || now - this.identifiedAt >= this.timings.identifyEveryMs) {
-        this.identity = await client.identify();
+        const identity = await client.identify();
+        if (client !== this.client) {
+          return false; // reconfigured meanwhile: not the identity of the new Tandoor
+        }
+        this.identity = identity;
         this.identifiedAt = now;
       }
       const today = this.today();
@@ -364,16 +390,19 @@ export class TandoorHub {
       if (client !== this.client) {
         return false; // reconfigured meanwhile
       }
-      return this.applySuccess({ mealTypes, meals, lists, entries, today });
+      return this.applySuccess({ mealTypes, meals, lists, entries, today, seq });
     } catch (err) {
-      if (!(err instanceof TandoorError) || client !== this.client) {
+      if (client !== this.client) {
+        return false; // the failure of a client replaced meanwhile
+      }
+      if (!(err instanceof TandoorError)) {
         throw err;
       }
       return this.applyFailure(err);
     }
   }
 
-  applySuccess({ mealTypes, meals, lists, entries, today }) {
+  applySuccess({ mealTypes, meals, lists, entries, today, seq = this.writeSeq }) {
     const { version, space } = this.identity;
     const now = this.now();
     const toBuy = sortItems(entries.filter((entry) => isToBuy(entry, now)));
@@ -403,7 +432,10 @@ export class TandoorHub {
       logger.info('Tandoor answers again');
     }
     logger.debug(`Read: ${meals.length} meal plan entries, ${toBuy.length} item(s) to buy`);
-    this.pendingShoppingEvent = this.shoppingChanges();
+    const changes = this.shoppingChanges(seq);
+    if (changes) {
+      this.pendingShoppingEvents.push(changes);
+    }
     return this.widgetChanged();
   }
 
@@ -425,12 +457,17 @@ export class TandoorHub {
    * What changed on the shopping list since the last reading, Gladys' own
    * changes left out; null when nothing to report (or the first reading).
    */
-  shoppingChanges() {
+  shoppingChanges(seq) {
     const language = this.config.language;
     const current = new Map(
       this.snapshot.items.map((entry) => [entry.id, itemLabel(entry, language)]),
     );
     const previous = this.shoppingBaseline;
+    // A reading that may have seen a write of Gladys half done: not compared
+    // (the baseline stays), the next reading will be.
+    if (previous !== null && (this.writing > 0 || seq < this.writeSeq)) {
+      return null;
+    }
     this.shoppingBaseline = current;
     if (previous === null) {
       return null;
@@ -447,6 +484,9 @@ export class TandoorHub {
         removed.push(label);
       }
     }
+    // Every write of Gladys ended before this reading: what it did is
+    // accounted for, a change undone meanwhile in Tandoor must not linger.
+    this.ownChanges.clear();
     if (added.length === 0 && removed.length === 0) {
       return null;
     }
@@ -615,17 +655,26 @@ export class TandoorHub {
 
   /** The `shopping_list_changed` trigger, when the last reading saw a change. */
   async publishShoppingEvent() {
-    const data = this.pendingShoppingEvent;
-    this.pendingShoppingEvent = null;
-    if (!data) {
-      return;
+    const pending = this.pendingShoppingEvents.splice(0);
+    for (const data of pending) {
+      logger.debug(`Shopping list changed: +${data.added_count} -${data.removed_count}`);
+      try {
+        await this.gladys.publishSceneEvent(TRIGGER_KEYS.SHOPPING_LIST_CHANGED, data);
+        this.problems.recover('event', 'Scene events accepted again');
+      } catch (err) {
+        this.problems.fail('event', `Scene event refused: ${err.message}`);
+      }
     }
-    logger.debug(`Shopping list changed: +${data.added_count} -${data.removed_count}`);
+  }
+
+  /** Run a write to Tandoor; the readings meanwhile do not report it. */
+  async write(operation) {
+    this.writing += 1;
     try {
-      await this.gladys.publishSceneEvent(TRIGGER_KEYS.SHOPPING_LIST_CHANGED, data);
-      this.problems.recover('event', 'Scene events accepted again');
-    } catch (err) {
-      this.problems.fail('event', `Scene event refused: ${err.message}`);
+      return await operation();
+    } finally {
+      this.writing -= 1;
+      this.writeSeq += 1;
     }
   }
 
@@ -689,7 +738,9 @@ export class TandoorHub {
     if (!this.snapshot) {
       return new Map();
     }
-    return this.snapshot.days.get(addDays(this.snapshot.day, offset)) ?? new Map();
+    // From the real today: after midnight with Tandoor unreachable, yesterday's
+    // meals must not show as today's.
+    return this.snapshot.days.get(addDays(this.today(), offset)) ?? new Map();
   }
 
   /** "Lunch: Lasagna · Dinner: Soup", '' when nothing is planned. */
@@ -806,12 +857,15 @@ export class TandoorHub {
       if (sameFood) {
         return already(sameFood);
       }
-      entry = await this.client.addEntry(parsed, list.id === null ? [] : [list]);
+      entry = await this.write(async () => {
+        const created = await this.client.addEntry(parsed, list.id === null ? [] : [list]);
+        if (created?.id !== undefined) {
+          this.ownChanges.add(created.id);
+        }
+        return created;
+      });
     } catch (err) {
       throw this.refusal(err);
-    }
-    if (entry?.id !== undefined) {
-      this.ownChanges.add(entry.id);
     }
     const name = itemName(entry ?? { food: parsed.food });
     logger.info(`"${name}" added to the shopping list${list.id === null ? '' : ` "${list.name}"`}`);
@@ -867,11 +921,13 @@ export class TandoorHub {
       };
     }
     try {
-      await this.client.setChecked(item.id, true);
+      await this.write(async () => {
+        await this.client.setChecked(item.id, true);
+        this.ownChanges.add(item.id);
+      });
     } catch (err) {
       throw this.refusal(err);
     }
-    this.ownChanges.add(item.id);
     logger.info(`"${itemName(item)}" checked on the shopping list`);
     await this.pollNow();
     return {

@@ -223,9 +223,8 @@ async function getMealPlan(hub, { settings = {}, language = 'en' }) {
   if (early) {
     return early;
   }
-  const { snapshot } = hub;
   const components = [];
-  const today = snapshot.day;
+  const today = hub.today();
 
   if (settings.period === 'week') {
     components.push({ type: 'text', variant: 'caption', text: t(TEXT.week, language) });

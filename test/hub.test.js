@@ -391,3 +391,66 @@ test('the reading is light: four requests per cycle, "who am I" once an hour', a
   await w.hub.pollNow();
   assert.ok(tandoor.requests.slice(again).some((request) => request.path === 'space/current/'));
 });
+
+test('a reading begun before a write of Gladys never reports that write', async (t) => {
+  const tandoor = new FakeTandoor();
+  const w = await world(t, { tandoor });
+  // A reading starts, then the scene adds an item while it is in flight.
+  const reading = w.hub.pollNow();
+  const added = run(w, 'Moutarde');
+  await Promise.all([reading, added]);
+  await w.hub.pollNow();
+  await w.hub.pollNow();
+  assert.equal(events(w, TRIGGER_KEYS.SHOPPING_LIST_CHANGED).length, 0);
+  // Added in Gladys, then removed in Tandoor before any reading: the next
+  // real change is still reported.
+  tandoor.addEntry('Beurre');
+  await w.hub.pollNow();
+  assert.equal(events(w, TRIGGER_KEYS.SHOPPING_LIST_CHANGED).at(-1).data.added, 'Beurre');
+
+  function run(world, item) {
+    return world.fake.sceneAction('add_shopping_item', { item });
+  }
+});
+
+test('a new address while the old one hangs: the new Tandoor is read at once', async (t) => {
+  const tandoor = new FakeTandoor();
+  const w = await world(t, { tandoor });
+  let release;
+  const hanging = new Promise((resolve) => {
+    release = resolve;
+  });
+  const realRequest = tandoor.request;
+  tandoor.request = async (url, options) => {
+    if (url.startsWith('http://192.0.2.99')) {
+      await hanging;
+      const error = new Error('timeout');
+      error.code = 'ETIMEDOUT';
+      throw error;
+    }
+    return realRequest(url, options);
+  };
+  w.hub.request = tandoor.request;
+  const bad = w.fake.configUpdated({ ...CONFIG, url: 'http://192.0.2.99:8080' });
+  await new Promise((resolve) => setImmediate(resolve));
+  const good = w.fake.configUpdated(CONFIG);
+  release();
+  await Promise.all([bad, good]);
+  assert.deepEqual(w.fake.connectionStatus, { connected: true });
+  assert.equal(w.hub.snapshot.spaceId, 1);
+});
+
+test('after midnight with Tandoor unreachable, yesterday is not shown as today', async (t) => {
+  const tandoor = new FakeTandoor();
+  const clock = createClock(Date.UTC(2026, 9, 17, 21, 50)); // 23:50 in Paris
+  const w = await world(t, { tandoor, clock });
+  await createDevice(w);
+  tandoor.failure = 'down';
+  clock.advance(20 * 60_000);
+  await w.hub.pollNow();
+  assert.deepEqual(
+    [...w.hub.mealsOn(0).values()].map((meal) => meal.titles),
+    [['Bœuf bourguignon']],
+    "the 18th's dinner, from the last good reading",
+  );
+});
